@@ -12,15 +12,22 @@ const FileUploadComponent: React.FC = () => {
     el.addEventListener("change", async (event: Event) => {
       const input = event.target as HTMLInputElement;
       if (input.files && input.files.length > 0) {
-        if (input) {
-          const formData = new formData();
-          formData.append("pdf", input);
+        const formData = new FormData();
+        formData.append("pdf", input.files[0]);
 
-          await fetch("http://localhost:8000/upload/pdf", {
+        try {
+          const response = await fetch("http://localhost:8000/upload/pdf", {
             method: "POST",
             body: formData,
           });
-          console.log("File Uploaded.");
+
+          if (response.ok) {
+            console.log("File uploaded successfully");
+          } else {
+            console.error("Failed to upload file");
+          }
+        } catch (error) {
+          console.error("Error uploading file:", error);
         }
       }
     });
