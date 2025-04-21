@@ -1,30 +1,46 @@
-import express from 'express';
-import cors from 'cors';
-import multer from 'multer';
+import express from "express";
+import cors from "cors";
+import multer from "multer";
+import { Queue } from "bullmq";
 
+const queue = new Queue("file-upload-queue", {
+  connection: {
+    host: "localhost",
+    port: "6379",
+  },
+});
 
 const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-      cb(null, 'uploads/')
-    },
-    filename: function (req, file, cb) {
-      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-      cb(null, `${uniqueSuffix}-${file.originalname}`)
-    }
-})
-
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, `${uniqueSuffix}-${file.originalname}`);
+  },
+});
 
 const upload = multer({ storage: storage });
 
-const app = express()
+const app = express();
 app.use(cors());
 
-app.get('/',(req,res)=>{
-    return res.json({"status" : "All Godd!"})
+app.get("/", (req, res) => {
+  return res.json({ status: "All Godd!" });
 });
 
-app.post('/upload/pdf', upload.single('pdf'), (req,res)=>{
-    return response.json({"status" : "uploaded"});
+app.post("/upload/pdf", upload.single("pdf"), (req, res) => {
+  queue.add(
+    "file-ready",
+    JSON.stringify({
+      filename: req.file.originalname,
+      destination: req.file.destination,
+      path: req.file.path,
+    })
+  );
+  return res.json({ status: "uploaded" });
 });
 
-app.listen(8000, ()=>{console.log("App is listening on http://localhost:8000")});
+app.listen(8000, () => {
+  console.log("App is listening on http://localhost:8000");
+});
